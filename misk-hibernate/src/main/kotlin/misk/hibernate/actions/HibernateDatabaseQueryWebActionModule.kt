@@ -11,7 +11,7 @@ import misk.web.metadata.database.DatabaseQueryMetadata
 import javax.persistence.Transient
 import kotlin.reflect.KClass
 import kotlin.reflect.full.declaredMemberProperties
-import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.jvm.javaField
 
 /** Install Hibernate specific Web Actions to support Database Query admin dashboard tab */
 internal class HibernateDatabaseQueryWebActionModule : KAbstractModule() {
@@ -67,7 +67,9 @@ internal class HibernateDatabaseQueryWebActionModule : KAbstractModule() {
       val dbEntityDeclaredMemberProperties =
         dbEntity.declaredMemberProperties.filter { it ->
           !invalidSelectPaths.contains(it.name) &&
-            it.findAnnotation<Transient>() == null
+            // Because Transient is a Java annotation, we have to check it on the underlying Java
+            // field. Searching for it on the KProperty will fail.
+            it.javaField?.getAnnotation(Transient::class.java) == null
         }.map { it.name }
       return if (paths?.isNotEmpty() == true) {
         if (!dbEntityDeclaredMemberProperties.containsAll(paths)) {
