@@ -8,8 +8,10 @@ import misk.inject.KAbstractModule
 import misk.inject.typeLiteral
 import misk.web.WebActionModule
 import misk.web.metadata.database.DatabaseQueryMetadata
+import javax.persistence.Transient
 import kotlin.reflect.KClass
 import kotlin.reflect.full.declaredMemberProperties
+import kotlin.reflect.full.findAnnotation
 
 /** Install Hibernate specific Web Actions to support Database Query admin dashboard tab */
 internal class HibernateDatabaseQueryWebActionModule : KAbstractModule() {
@@ -63,9 +65,10 @@ internal class HibernateDatabaseQueryWebActionModule : KAbstractModule() {
     ): List<String> {
       val invalidSelectPaths = setOf("rootId")
       val dbEntityDeclaredMemberProperties =
-        dbEntity.declaredMemberProperties.map { it.name }.filter {
-          !invalidSelectPaths.contains(it)
-        }
+        dbEntity.declaredMemberProperties.filter { it ->
+          !invalidSelectPaths.contains(it.name) &&
+            it.findAnnotation<Transient>() == null
+        }.map { it.name }
       return if (paths?.isNotEmpty() == true) {
         if (!dbEntityDeclaredMemberProperties.containsAll(paths)) {
           throw BadRequestException(
